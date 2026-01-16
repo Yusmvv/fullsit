@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Управление офферами</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .login-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 350px;
+        }
+        
+        .error-message {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 4px;
+            display: none;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        tr:hover {
+            background: #f8fafc;
+        }
+        
+        .sidebar {
+            width: 220px;
+            background: #1e293b;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            padding: 20px 0;
+        }
+        
+        .main-content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .file-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 25px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .file-upload:hover {
+            border-color: var(--primary);
+        }
+        
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .filter-tag {
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #475569;
+        }
+        
+        .excel-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .excel-buttons {
+                flex-direction: column;
+            }
+            .excel-buttons .btn {
+                width: 100%;
+            }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .section {
+            display: block;
+        }
+        
+        .server-status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .server-online {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .server-offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <!-- Экран входа -->
+    <div id="login-screen" class="login-container">
+        <div class="login-card">
+            <h1 style="font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 10px;">
+                <i class="fas fa-lock"></i> Админ-панель
+            </h1>
+            <p style="text-align: center; color: #64748b; margin-bottom: 25px;">Вход в систему управления офферами</p>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600;">Логин</label>
+                    <input type="text" id="username" class="form-control" required>
+                    <div class="error-message" id="username-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600;">Пароль</label>
+                    <input type="password" id="password" class="form-control" required>
+                    <div class="error-message" id="password-error"></div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </button>
+                
+                <div style="margin-top: 20px; padding: 12px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 12px; color: #475569; margin-bottom: 5px;">Тестовый доступ:</div>
+                    <div style="font-size: 11px; color: #64748b;">
+                        Логин: <code>admin</code><br>
+                        Пароль: <code>secure123</code>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Основное приложение -->
+    <div id="app" style="display: none;">
+        <div class="sidebar">
+            <div style="padding: 15px;">
+                <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 25px;">
+                    <i class="fas fa-cogs"></i> Управление
+                </h2>
+                
+                <nav style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn landing-tab active" data-section="all" style="justify-content: flex-start; background: rgba(255,255,255,0.1); color: white;">
+                        <i class="fas fa-database"></i> Все офферы
+                    </button>
+                    <button class="btn landing-tab" data-section="landing1" style="justify-content: flex-start; background: rgba(255,255,255,0.1); color: white;">
+                        <i class="fas fa-handshake"></i> FinAI
+                    </button>
+                    <button class="btn landing-tab" data-section="landing2" style="justify-content: flex-start; background: rgba(255,255,255,0.1); color: white;">
+                        <i class="fas fa-brain"></i> ДеньгиСразу
+                    </button>
+                    <button id="logout-btn" class="btn" style="justify-content: flex-start; background: rgba(239, 68, 68, 0.1); color: white; margin-top: 25px;">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </button>
+                </nav>
+                
+                <div style="margin-top: 30px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.7);">Всего офферов:</div>
+                    <div style="font-size: 24px; font-weight: 700;" id="sidebar-total">0</div>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">Статус сервера:</div>
+                    <div id="server-status" class="server-status server-online">Онлайн</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Секция всех офферов -->
+            <div id="all-section" class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1 style="font-size: 24px; font-weight: 700;">
+                        <i class="fas fa-database"></i> Все офферы
+                    </h1>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="add-offer" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Добавить
+                        </button>
+                        <button id="delete-all-offers" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Удалить все
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Статистика -->
+                <div class="stats-grid">
+                    <div class="card">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">Всего офферов</div>
+                        <div id="total-offers" style="font-size: 28px; font-weight: 700;">0</div>
+                    </div>
+                    <div class="card">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">На FinAI</div>
+                        <div id="offers-landing1" style="font-size: 28px; font-weight: 700;">0</div>
+                    </div>
+                    <div class="card">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">На ДеньгиСразу</div>
+                        <div id="offers-landing2" style="font-size: 28px; font-weight: 700;">0</div>
+                    </div>
+                    <div class="card">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">Активных</div>
+                        <div id="active-offers" style="font-size: 28px; font-weight: 700;">0</div>
+                    </div>
+                </div>
+                
+                <!-- Инструменты -->
+                <div style="margin-bottom: 20px;">
+                    <div class="card">
+                        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">
+                            <i class="fas fa-tools"></i> Работа с данными
+                        </h3>
+                        <div class="excel-buttons">
+                            <button id="import-excel" class="btn btn-success">
+                                <i class="fas fa-file-import"></i> Импорт из Excel
+                            </button>
+                            <button id="export-excel" class="btn" style="background: #10b981; color: white;">
+                                <i class="fas fa-file-export"></i> Экспорт в Excel
+                            </button>
+                            <button id="download-template" class="btn" style="background: #e5e7eb; color: #374151;">
+                                <i class="fas fa-download"></i> Шаблон Excel
+                            </button>
+                            <button id="export-json" class="btn" style="background: #8b5cf6; color: white;">
+                                <i class="fas fa-file-code"></i> Сохранить на сервер
+                            </button>
+                            <button id="load-from-server" class="btn" style="background: #0ea5e9; color: white;">
+                                <i class="fas fa-sync-alt"></i> Загрузить с сервера
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Таблица офферов -->
+                <div class="card" style="overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="font-size: 16px; font-weight: 600;">Список офферов</h3>
+                        <input type="text" id="search-offers" placeholder="Поиск..." style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; width: 200px; font-size: 14px;">
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Оффер</th>
+                                    <th>Сумма</th>
+                                    <th>Срок</th>
+                                    <th>Ставка</th>
+                                    <th>Фильтры</th>
+                                    <th>Лендинги</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="offers-table">
+                                <!-- Офферы будут здесь -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Секция FinAI -->
+            <div id="landing1-section" class="section" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1 style="font-size: 24px; font-weight: 700;">
+                        <i class="fas fa-handshake"></i> Офферы для FinAI
+                    </h1>
+                    <button id="add-offer-landing1" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Добавить
+                    </button>
+                </div>
+                
+                <!-- Таблица офферов FinAI -->
+                <div class="card" style="overflow: hidden;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 15px;">Офферы на лендинге FinAI</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Оффер</th>
+                                    <th>Сумма</th>
+                                    <th>Срок</th>
+                                    <th>Ставка</th>
+                                    <th>Фильтры</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="offers-table-landing1">
+                                <!-- Офферы будут здесь -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Секция ДеньгиСразу -->
+            <div id="landing2-section" class="section" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1 style="font-size: 24px; font-weight: 700;">
+                        <i class="fas fa-brain"></i> Офферы для ДеньгиСразу
+                    </h1>
+                    <button id="add-offer-landing2" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Добавить
+                    </button>
+                </div>
+                
+                <!-- Таблица офферов ДеньгиСразу -->
+                <div class="card" style="overflow: hidden;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 15px;">Офферы на лендинге ДеньгиСразу</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Оффер</th>
+                                    <th>Сумма</th>
+                                    <th>Срок</th>
+                                    <th>Ставка</th>
+                                    <th>Фильтры</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="offers-table-landing2">
+                                <!-- Офферы будут здесь -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно импорта Excel -->
+    <div id="import-modal" class="modal">
+        <div class="card" style="width: 90%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-size: 20px; font-weight: 700;">Импорт из Excel</h2>
+                <button id="close-import-modal" class="btn" style="background: #e5e7eb;">✕</button>
+            </div>
+            
+            <div id="file-upload-area" class="file-upload">
+                <i class="fas fa-file-upload" style="font-size: 28px; color: #64748b; margin-bottom: 10px;"></i>
+                <div style="font-weight: 600; margin-bottom: 5px;">Загрузите Excel файл</div>
+                <div style="font-size: 13px; color: #64748b; margin-bottom: 15px;">Нажмите или перетащите файл</div>
+                <div class="btn" style="background: #e2e8f0;">
+                    <i class="fas fa-upload"></i> Выбрать файл
+                </div>
+                <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" style="display: none;">
+            </div>
+            
+            <div style="margin-top: 15px; padding: 12px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Обязательные колонки:</div>
+                <div style="font-size: 12px; color: #64748b;">
+                    Название, Описание, СуммаМин, СуммаМакс, СрокМин, СрокМакс,<br>
+                    СтавкаМин, СтавкаМакс, Рейтинг, Ссылка, ШансОдобрения
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно оффера -->
+    <div id="offer-modal" class="modal">
+        <div class="card" style="width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-size: 20px; font-weight: 700;" id="modal-title">Новый оффер</h2>
+                <button id="close-modal" class="btn" style="background: #e5e7eb;">✕</button>
+            </div>
+            
+            <form id="offer-form">
+                <input type="hidden" id="offer-id">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Название оффера *</label>
+                        <input type="text" id="offer-name" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Статус</label>
+                        <select id="offer-status" class="form-control">
+                            <option value="active">Активный</option>
+                            <option value="inactive">Неактивный</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600;">Описание</label>
+                    <textarea id="offer-description" class="form-control" rows="3" placeholder="Краткое описание оффера для пользователей"></textarea>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Мин. сумма, ₽</label>
+                        <input type="number" id="amount-min" class="form-control" value="1000" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Макс. сумма, ₽</label>
+                        <input type="number" id="amount-max" class="form-control" value="50000" min="0">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Мин. срок, дней</label>
+                        <input type="number" id="term-min" class="form-control" value="7" min="1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Макс. срок, дней</label>
+                        <input type="number" id="term-max" class="form-control" value="30" min="1">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Мин. ставка, %</label>
+                        <input type="number" step="0.1" id="rate-min" class="form-control" value="0" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Макс. ставка, %</label>
+                        <input type="number" step="0.1" id="rate-max" class="form-control" value="0.8" min="0">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Рейтинг (1-5)</label>
+                        <input type="number" id="rating" class="form-control" value="5" min="1" max="5" step="0.1">
+                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Отображается в виде звёзд на лендинге</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600;">Шанс одобрения, %</label>
+                        <input type="number" id="approval" class="form-control" value="95" min="0" max="100">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600;">Ссылка на оффер *</label>
+                    <input type="url" id="offer-link" class="form-control" required placeholder="https://example.com/offer">
+                    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Ссылка, по которой перейдет пользователь при клике</div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Лендинги</label>
+                    <div style="display: flex; gap: 20px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="landing1-check" checked>
+                            FinAI
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="landing2-check" checked>
+                            ДеньгиСразу
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Типы дохода -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Типы дохода</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                            <input type="checkbox" id="income-official">
+                            Официальный
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                            <input type="checkbox" id="income-unofficial">
+                            Неофициальный
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                            <input type="checkbox" id="income-benefits">
+                            Пособие/пенсия
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                            <input type="checkbox" id="income-noincome">
+                            Без дохода
+                        </label>
+                    </div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Выберите подходящие типы дохода</div>
+                </div>
+                
+                <!-- Типы кредитной истории -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Типы кредитной истории</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                            <input type="checkbox" id="history-none">
+                            Нет просрочек
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                            <input type="checkbox" id="history-small">
+                            Были небольшие
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                            <input type="checkbox" id="history-current">
+                            Есть текущие
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                            <input type="checkbox" id="history-bad">
+                            Плохая история
+                        </label>
+                    </div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Выберите подходящие типы кредитной истории</div>
+                </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button type="submit" class="btn" style="flex: 1; background: var(--success); color: white;">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
+                    <button type="button" id="cancel-modal" class="btn" style="flex: 1; background: #e5e7eb;">
+                        Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ===================== КОНФИГУРАЦИЯ =====================
+        const CONFIG = {
+            AUTH: {
+                USERNAME: 'admin',
+                PASSWORD: 'secure123'
+            },
+            
+            STORAGE_KEYS: {
+                OFFERS: 'offers_data',
+                SESSION: 'admin_session'
+            },
+            
+            MAX_LOGIN_ATTEMPTS: 5,
+            LOCKOUT_TIME: 15 * 60 * 1000,
+            
+            API: {
+                SAVE: 'save.php',
+                LOAD: 'load.php'
+            }
+        };
+        
+        // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
+        let offers = [];
+        let currentSection = 'all';
+        let currentEditOffer = null;
+        let loginAttempts = 0;
+        let lockoutUntil = 0;
+        
+        // ===================== АВТОРИЗАЦИЯ =====================
+        function checkAuth() {
+            try {
+                const session = localStorage.getItem(CONFIG.STORAGE_KEYS.SESSION);
+                if (!session) return false;
+                
+                const sessionData = JSON.parse(session);
+                const now = Date.now();
+                
+                if (now < lockoutUntil) {
+                    const remaining = Math.ceil((lockoutUntil - now) / 60000);
+                    showError('password-error', `Слишком много попыток. Попробуйте через ${remaining} мин.`);
+                    return false;
+                }
+                
+                return sessionData.authenticated === true;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem(CONFIG.STORAGE_KEYS.SESSION);
+            showLogin();
+            resetLoginForm();
+        }
+        
+        // ===================== ИНИЦИАЛИЗАЦИЯ =====================
+        document.addEventListener('DOMContentLoaded', async function() {
+            const lockout = localStorage.getItem('login_lockout');
+            if (lockout) {
+                lockoutUntil = parseInt(lockout);
+                if (Date.now() < lockoutUntil) {
+                    const remaining = Math.ceil((lockoutUntil - Date.now()) / 60000);
+                    showError('password-error', `Слишком много попыток. Попробуйте через ${remaining} мин.`);
+                }
+            }
+            
+            if (checkAuth()) {
+                showApp();
+                initApp();
+            } else {
+                showLogin();
+                initLogin();
+            }
+        });
+        
+        function initLogin() {
+            const form = document.getElementById('login-form');
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                
+                hideErrors();
+                
+                if (Date.now() < lockoutUntil) {
+                    const remaining = Math.ceil((lockoutUntil - Date.now()) / 60000);
+                    showError('password-error', `Слишком много попыток. Попробуйте через ${remaining} мин.`);
+                    return;
+                }
+                
+                if (username !== CONFIG.AUTH.USERNAME) {
+                    loginAttempts++;
+                    showError('username-error', 'Неверный логин');
+                    checkLoginAttempts();
+                    return;
+                }
+                
+                if (password !== CONFIG.AUTH.PASSWORD) {
+                    loginAttempts++;
+                    showError('password-error', 'Неверный пароль');
+                    checkLoginAttempts();
+                    return;
+                }
+                
+                loginAttempts = 0;
+                localStorage.removeItem('login_lockout');
+                
+                const sessionData = {
+                    authenticated: true,
+                    username: username,
+                    timestamp: Date.now()
+                };
+                
+                localStorage.setItem(CONFIG.STORAGE_KEYS.SESSION, JSON.stringify(sessionData));
+                showApp();
+                initApp();
+            });
+        }
+        
+        function checkLoginAttempts() {
+            if (loginAttempts >= CONFIG.MAX_LOGIN_ATTEMPTS) {
+                lockoutUntil = Date.now() + CONFIG.LOCKOUT_TIME;
+                localStorage.setItem('login_lockout', lockoutUntil.toString());
+                showError('password-error', `Слишком много попыток. Попробуйте через ${CONFIG.LOCKOUT_TIME / 60000} мин.`);
+            }
+        }
+        
+        function showError(errorId, message) {
+            const errorEl = document.getElementById(errorId);
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+        
+        function hideErrors() {
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+        
+        function resetLoginForm() {
+            document.getElementById('login-form').reset();
+            hideErrors();
+        }
+        
+        function showLogin() {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
+        }
+        
+        function showApp() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+        }
+        
+        // ===================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ =====================
+        function initApp() {
+            loadData();
+            checkServerStatus();
+            
+            document.querySelectorAll('.landing-tab').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    showSection(section);
+                });
+            });
+            
+            document.getElementById('add-offer').addEventListener('click', () => showOfferModal('all'));
+            document.getElementById('add-offer-landing1').addEventListener('click', () => showOfferModal('landing1'));
+            document.getElementById('add-offer-landing2').addEventListener('click', () => showOfferModal('landing2'));
+            
+            document.getElementById('delete-all-offers').addEventListener('click', deleteAllOffers);
+            
+            document.getElementById('import-excel').addEventListener('click', showImportModal);
+            document.getElementById('export-excel').addEventListener('click', exportToExcel);
+            document.getElementById('download-template').addEventListener('click', downloadTemplate);
+            document.getElementById('export-json').addEventListener('click', saveToServer);
+            document.getElementById('load-from-server').addEventListener('click', loadFromServer);
+            
+            document.getElementById('search-offers').addEventListener('input', filterOffers);
+            
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            
+            document.getElementById('close-modal').addEventListener('click', closeOfferModal);
+            document.getElementById('cancel-modal').addEventListener('click', closeOfferModal);
+            document.getElementById('offer-form').addEventListener('submit', saveOffer);
+            
+            document.getElementById('close-import-modal').addEventListener('click', closeImportModal);
+            
+            const fileUpload = document.getElementById('file-upload-area');
+            const fileInput = document.getElementById('excel-file');
+            
+            fileUpload.addEventListener('click', () => fileInput.click());
+            fileUpload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUpload.style.borderColor = 'var(--primary)';
+            });
+            fileUpload.addEventListener('dragleave', () => {
+                fileUpload.style.borderColor = '#d1d5db';
+            });
+            fileUpload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUpload.style.borderColor = '#d1d5db';
+                if (e.dataTransfer.files.length) {
+                    handleExcelUpload(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleExcelUpload(e.target.files[0]);
+                }
+            });
+            
+            showSection('all');
+        }
+        
+        // ===================== ПРОВЕРКА СТАТУСА СЕРВЕРА =====================
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(CONFIG.API.LOAD);
+                if (response.ok) {
+                    document.getElementById('server-status').textContent = 'Онлайн';
+                    document.getElementById('server-status').className = 'server-status server-online';
+                } else {
+                    throw new Error('Server error');
+                }
+            } catch (error) {
+                document.getElementById('server-status').textContent = 'Офлайн';
+                document.getElementById('server-status').className = 'server-status server-offline';
+            }
+        }
+        
+        // ===================== УПРАВЛЕНИЕ ДАННЫМИ =====================
+        function loadData() {
+            try {
+                const savedOffers = localStorage.getItem(CONFIG.STORAGE_KEYS.OFFERS);
+                if (savedOffers) {
+                    const data = JSON.parse(savedOffers);
+                    offers = data.offers || data;
+                } else {
+                    loadDemoData();
+                }
+                updateUI();
+            } catch (e) {
+                console.error('Ошибка загрузки данных:', e);
+                loadDemoData();
+            }
+        }
+        
+        async function saveData() {
+            try {
+                // Подготавливаем данные для сохранения
+                const dataToSave = {
+                    offers: offers,
+                    last_updated: new Date().toISOString(),
+                    landing1_count: offers.filter(o => o.landing1 === true).length,
+                    landing2_count: offers.filter(o => o.landing2 === true).length,
+                    total_count: offers.length
+                };
+                
+                // Сохраняем в localStorage
+                localStorage.setItem(CONFIG.STORAGE_KEYS.OFFERS, JSON.stringify(dataToSave));
+                
+                updateStats();
+                
+                // Автоматически сохраняем на сервер
+                await saveToServer();
+                
+            } catch (e) {
+                console.error('Ошибка сохранения:', e);
+                showNotification('Ошибка сохранения данных', 'error');
+            }
+        }
+        
+        // ===================== СОХРАНЕНИЕ НА СЕРВЕР =====================
+        async function saveToServer() {
+            try {
+                showNotification('Сохранение на сервер...', 'info');
+                
+                const dataToSave = {
+                    offers: offers,
+                    last_updated: new Date().toISOString(),
+                    landing1_count: offers.filter(o => o.landing1 === true).length,
+                    landing2_count: offers.filter(o => o.landing2 === true).length,
+                    total_count: offers.length
+                };
+                
+                const response = await fetch(CONFIG.API.SAVE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dataToSave)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Данные успешно сохранены на сервере', 'success');
+                    checkServerStatus();
+                    return true;
+                } else {
+                    showNotification('Ошибка сохранения на сервере: ' + result.error, 'error');
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('Ошибка отправки на сервер:', error);
+                showNotification('Не удалось подключиться к серверу', 'error');
+                checkServerStatus();
+                return false;
+            }
+        }
+        
+        // ===================== ЗАГРУЗКА С СЕРВЕРА =====================
+        async function loadFromServer() {
+            try {
+                showNotification('Загрузка данных с сервера...', 'info');
+                
+                const response = await fetch(CONFIG.API.LOAD);
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка сервера');
+                }
+                
+                const data = await response.json();
+                
+                if (data.offers && data.offers.length > 0) {
+                    offers = data.offers;
+                    
+                    // Сохраняем в localStorage
+                    localStorage.setItem(CONFIG.STORAGE_KEYS.OFFERS, JSON.stringify(data));
+                    
+                    updateUI();
+                    showNotification(`Загружено ${offers.length} офферов с сервера`, 'success');
+                    checkServerStatus();
+                } else {
+                    showNotification('На сервере нет данных', 'warning');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка загрузки с сервера:', error);
+                showNotification('Не удалось загрузить данные с сервера', 'error');
+                checkServerStatus();
+            }
+        }
+        
+        function getOffersForLanding(landing) {
+            if (landing === 'landing1') {
+                return offers.filter(o => o.landing1 === true);
+            } else if (landing === 'landing2') {
+                return offers.filter(o => o.landing2 === true);
+            }
+            return offers;
+        }
+        
+        // ===================== ОБНОВЛЕНИЕ ИНТЕРФЕЙСА =====================
+        function updateUI() {
+            updateStats();
+            updateOffersTable();
+        }
+        
+        function updateStats() {
+            const total = offers.length;
+            const active = offers.filter(o => o.status === 'active').length;
+            const landing1 = offers.filter(o => o.landing1 === true).length;
+            const landing2 = offers.filter(o => o.landing2 === true).length;
+            
+            document.getElementById('total-offers').textContent = total;
+            document.getElementById('active-offers').textContent = active;
+            document.getElementById('offers-landing1').textContent = landing1;
+            document.getElementById('offers-landing2').textContent = landing2;
+            document.getElementById('sidebar-total').textContent = total;
+        }
+        
+        function updateOffersTable() {
+            const sections = ['all', 'landing1', 'landing2'];
+            
+            sections.forEach(section => {
+                const tableOffers = getOffersForLanding(section);
+                const tbody = document.getElementById(`offers-table${section === 'all' ? '' : '-' + section}`);
+                if (!tbody) return;
+                
+                tbody.innerHTML = '';
+                
+                if (tableOffers.length === 0) {
+                    const cols = section === 'all' ? 7 : 6;
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="${cols}" style="text-align: center; padding: 30px; color: #64748b;">
+                                <i class="fas fa-inbox" style="font-size: 20px; margin-bottom: 8px;"></i>
+                                <div>Нет офферов</div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tableOffers.forEach(offer => {
+                    const tr = document.createElement('tr');
+                    
+                    const incomeLabels = {
+                        'official': 'Офиц.',
+                        'unofficial': 'Неофиц.',
+                        'benefits': 'Пособие',
+                        'noincome': 'Без дохода'
+                    };
+                    
+                    const historyLabels = {
+                        'none': 'Нет просрочек',
+                        'small': 'Были небольшие',
+                        'current': 'Есть текущие',
+                        'bad': 'Плохая история'
+                    };
+                    
+                    const incomeTags = (offer.incomeTypes || []).map(type => 
+                        `<span class="filter-tag">${incomeLabels[type] || type}</span>`
+                    ).join('');
+                    
+                    const historyTags = (offer.historyTypes || []).map(type => 
+                        `<span class="filter-tag">${historyLabels[type] || type}</span>`
+                    ).join('');
+                    
+                    const filterTags = incomeTags + historyTags;
+                    
+                    const landingBadges = section === 'all' ? `
+                        <td>
+                            <div style="display: flex; gap: 4px;">
+                                ${offer.landing1 ? '<span class="badge badge-info" style="font-size: 11px;">FinAI</span>' : ''}
+                                ${offer.landing2 ? '<span class="badge badge-info" style="font-size: 11px;">ДеньгиСразу</span>' : ''}
+                            </div>
+                        </td>
+                    ` : '';
+                    
+                    tr.innerHTML = `
+                        <td>
+                            <div style="font-weight: 600;">${offer.name}</div>
+                            <div style="font-size: 12px; color: #64748b;">${offer.description || ''}</div>
+                        </td>
+                        <td>
+                            <div>${formatNumber(offer.amount_min)} - ${formatNumber(offer.amount_max)} ₽</div>
+                        </td>
+                        <td>
+                            <div>${offer.term_min} - ${offer.term_max} дней</div>
+                        </td>
+                        <td>
+                            <div style="color: #059669; font-weight: 600;">${offer.rate_min} - ${offer.rate_max}%</div>
+                        </td>
+                        <td>
+                            <div class="filter-tags">
+                                ${filterTags || '<span style="font-size: 11px; color: #94a3b8;">Нет фильтров</span>'}
+                            </div>
+                        </td>
+                        ${landingBadges}
+                        <td>
+                            <div style="display: flex; gap: 6px;">
+                                <button onclick="editOffer('${offer.id}')" class="btn" style="padding: 5px 10px; font-size: 12px;">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteOffer('${offer.id}')" class="btn" style="padding: 5px 10px; font-size: 12px; background: #fee2e2; color: #dc2626;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+        
+        function filterOffers() {
+            const search = document.getElementById('search-offers').value.toLowerCase();
+            const rows = document.querySelectorAll('#offers-table tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+        
+        function showSection(section) {
+            currentSection = section;
+            
+            document.querySelectorAll('.section').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            document.getElementById(section === 'all' ? 'all-section' : `${section}-section`).style.display = 'block';
+            
+            document.querySelectorAll('.landing-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.landing-tab[data-section="${section}"]`).classList.add('active');
+            
+            updateOffersTable();
+        }
+        
+        // ===================== УПРАВЛЕНИЕ ОФФЕРАМИ =====================
+        function showOfferModal(section, offer = null) {
+            currentEditOffer = offer;
+            const modal = document.getElementById('offer-modal');
+            const title = document.getElementById('modal-title');
+            
+            if (offer) {
+                title.textContent = 'Редактировать оффер';
+                populateForm(offer);
+            } else {
+                title.textContent = 'Новый оффер';
+                resetForm(section);
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        function populateForm(offer) {
+            document.getElementById('offer-id').value = offer.id;
+            document.getElementById('offer-name').value = offer.name;
+            document.getElementById('offer-description').value = offer.description || '';
+            document.getElementById('offer-status').value = offer.status || 'active';
+            document.getElementById('amount-min').value = offer.amount_min;
+            document.getElementById('amount-max').value = offer.amount_max;
+            document.getElementById('term-min').value = offer.term_min;
+            document.getElementById('term-max').value = offer.term_max;
+            document.getElementById('rate-min').value = offer.rate_min;
+            document.getElementById('rate-max').value = offer.rate_max;
+            document.getElementById('rating').value = offer.rating || 5;
+            document.getElementById('approval').value = offer.approval || 95;
+            document.getElementById('offer-link').value = offer.link || '';
+            document.getElementById('landing1-check').checked = offer.landing1 === true;
+            document.getElementById('landing2-check').checked = offer.landing2 === true;
+            
+            // Типы дохода
+            const incomeTypes = offer.incomeTypes || [];
+            document.getElementById('income-official').checked = incomeTypes.includes('official');
+            document.getElementById('income-unofficial').checked = incomeTypes.includes('unofficial');
+            document.getElementById('income-benefits').checked = incomeTypes.includes('benefits');
+            document.getElementById('income-noincome').checked = incomeTypes.includes('noincome');
+            
+            // Типы кредитной истории
+            const historyTypes = offer.historyTypes || [];
+            document.getElementById('history-none').checked = historyTypes.includes('none');
+            document.getElementById('history-small').checked = historyTypes.includes('small');
+            document.getElementById('history-current').checked = historyTypes.includes('current');
+            document.getElementById('history-bad').checked = historyTypes.includes('bad');
+        }
+        
+        function resetForm(section) {
+            document.getElementById('offer-form').reset();
+            document.getElementById('offer-id').value = '';
+            document.getElementById('offer-status').value = 'active';
+            document.getElementById('rating').value = 5;
+            document.getElementById('approval').value = 95;
+            document.getElementById('offer-link').value = 'https://';
+            
+            // Снимаем все галочки с типов дохода и истории
+            document.getElementById('income-official').checked = false;
+            document.getElementById('income-unofficial').checked = false;
+            document.getElementById('income-benefits').checked = false;
+            document.getElementById('income-noincome').checked = false;
+            
+            document.getElementById('history-none').checked = false;
+            document.getElementById('history-small').checked = false;
+            document.getElementById('history-current').checked = false;
+            document.getElementById('history-bad').checked = false;
+            
+            if (section === 'landing1') {
+                document.getElementById('landing1-check').checked = true;
+                document.getElementById('landing2-check').checked = false;
+            } else if (section === 'landing2') {
+                document.getElementById('landing1-check').checked = false;
+                document.getElementById('landing2-check').checked = true;
+            } else {
+                document.getElementById('landing1-check').checked = true;
+                document.getElementById('landing2-check').checked = true;
+            }
+        }
+        
+        function closeOfferModal() {
+            document.getElementById('offer-modal').style.display = 'none';
+            currentEditOffer = null;
+        }
+        
+        async function saveOffer(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('offer-id').value;
+            const name = document.getElementById('offer-name').value.trim();
+            const link = document.getElementById('offer-link').value.trim();
+            
+            if (!name) {
+                showNotification('Введите название оффера', 'error');
+                return;
+            }
+            
+            if (!link) {
+                showNotification('Введите ссылку на оффер', 'error');
+                return;
+            }
+            
+            // Собираем типы дохода
+            const incomeTypes = [];
+            if (document.getElementById('income-official').checked) incomeTypes.push('official');
+            if (document.getElementById('income-unofficial').checked) incomeTypes.push('unofficial');
+            if (document.getElementById('income-benefits').checked) incomeTypes.push('benefits');
+            if (document.getElementById('income-noincome').checked) incomeTypes.push('noincome');
+            
+            // Собираем типы кредитной истории
+            const historyTypes = [];
+            if (document.getElementById('history-none').checked) historyTypes.push('none');
+            if (document.getElementById('history-small').checked) historyTypes.push('small');
+            if (document.getElementById('history-current').checked) historyTypes.push('current');
+            if (document.getElementById('history-bad').checked) historyTypes.push('bad');
+            
+            const offerData = {
+                id: id || 'offer_' + Date.now(),
+                name: name,
+                description: document.getElementById('offer-description').value.trim(),
+                status: document.getElementById('offer-status').value,
+                amount_min: parseInt(document.getElementById('amount-min').value) || 1000,
+                amount_max: parseInt(document.getElementById('amount-max').value) || 50000,
+                term_min: parseInt(document.getElementById('term-min').value) || 7,
+                term_max: parseInt(document.getElementById('term-max').value) || 30,
+                rate_min: parseFloat(document.getElementById('rate-min').value) || 0,
+                rate_max: parseFloat(document.getElementById('rate-max').value) || 0.8,
+                rating: parseFloat(document.getElementById('rating').value) || 5,
+                approval: parseInt(document.getElementById('approval').value) || 95,
+                link: link,
+                link_landing2: link, // Для совместимости со вторым лендингом
+                landing1: document.getElementById('landing1-check').checked,
+                landing2: document.getElementById('landing2-check').checked,
+                icon: 'hand-holding-usd', // Иконка по умолчанию
+                incomeTypes: incomeTypes,
+                historyTypes: historyTypes,
+                created_at: new Date().toISOString()
+            };
+            
+            if (id) {
+                const index = offers.findIndex(o => o.id === id);
+                if (index !== -1) {
+                    offers[index] = {...offers[index], ...offerData};
+                }
+            } else {
+                offers.push(offerData);
+            }
+            
+            await saveData();
+            updateUI();
+            closeOfferModal();
+        }
+        
+        window.editOffer = function(id) {
+            const offer = offers.find(o => o.id === id);
+            if (offer) showOfferModal(currentSection, offer);
+        };
+        
+        window.deleteOffer = function(id) {
+            Swal.fire({
+                title: 'Удалить оффер?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Удалить',
+                cancelButtonText: 'Отмена'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    offers = offers.filter(o => o.id !== id);
+                    saveData();
+                    updateUI();
+                    showNotification('Оффер удален', 'success');
+                }
+            });
+        };
+        
+        function deleteAllOffers() {
+            if (offers.length === 0) {
+                showNotification('Нет офферов для удаления', 'warning');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'Удалить ВСЕ офферы?',
+                html: `Вы собираетесь удалить <strong>${offers.length}</strong> офферов.<br>Это действие нельзя отменить!`,
+                icon: 'error',
+                showCancelButton: true,
+                confirmButtonText: 'Да, удалить все',
+                cancelButtonText: 'Отмена',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    offers = [];
+                    saveData();
+                    updateUI();
+                    showNotification('Все офферы удалены', 'success');
+                }
+            });
+        }
+        
+        // ===================== ИМПОРТ/ЭКСПОРТ EXCEL =====================
+        function showImportModal() {
+            document.getElementById('import-modal').style.display = 'flex';
+        }
+        
+        function closeImportModal() {
+            document.getElementById('import-modal').style.display = 'none';
+        }
+        
+        async function handleExcelUpload(file) {
+            try {
+                const data = await readExcelFile(file);
+                
+                if (!data || data.length === 0) {
+                    throw new Error('Файл пуст');
+                }
+                
+                const newOffers = data.map((row, index) => ({
+                    id: 'import_' + Date.now() + '_' + index,
+                    name: row['Название'] || `Оффер ${index + 1}`,
+                    description: row['Описание'] || '',
+                    amount_min: parseInt(row['СуммаМин']) || 1000,
+                    amount_max: parseInt(row['СуммаМакс']) || 50000,
+                    term_min: parseInt(row['СрокМин']) || 7,
+                    term_max: parseInt(row['СрокМакс']) || 30,
+                    rate_min: parseFloat(row['СтавкаМин']) || 0,
+                    rate_max: parseFloat(row['СтавкаМакс']) || 0.8,
+                    rating: Math.min(Math.max(parseFloat(row['Рейтинг']) || 5, 1), 5),
+                    approval: parseInt(row['ШансОдобрения']) || 95,
+                    link: row['Ссылка'] || '#',
+                    link_landing2: row['Ссылка'] || '#',
+                    landing1: true,
+                    landing2: true,
+                    status: 'active',
+                    icon: 'hand-holding-usd',
+                    incomeTypes: [],
+                    historyTypes: [],
+                    created_at: new Date().toISOString()
+                }));
+                
+                Swal.fire({
+                    title: 'Подтвердите импорт',
+                    html: `Найдено <strong>${newOffers.length}</strong> офферов.<br>
+                          Добавить их в базу данных?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Да, добавить',
+                    cancelButtonText: 'Отмена'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        offers.push(...newOffers);
+                        saveData();
+                        updateUI();
+                        closeImportModal();
+                        showNotification(`Добавлено ${newOffers.length} офферов`, 'success');
+                    }
+                });
+                
+            } catch (error) {
+                showNotification('Ошибка загрузки файла: ' + error.message, 'error');
+            }
+        }
+        
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = e.target.result;
+                        const workbook = XLSX.read(data, { type: 'binary' });
+                        const firstSheet = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheet];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    reject(new Error('Ошибка чтения файла'));
+                };
+                
+                if (file.name.endsWith('.csv')) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsBinaryString(file);
+                }
+            });
+        }
+        
+        function downloadTemplate() {
+            const templateData = [
+                {
+                    'Название': 'МоментальныеДеньги',
+                    'Описание': 'Лидер по скорости выдачи',
+                    'СуммаМин': 1000,
+                    'СуммаМакс': 50000,
+                    'СрокМин': 7,
+                    'СрокМакс': 30,
+                    'СтавкаМин': 0,
+                    'СтавкаМакс': 0.8,
+                    'Рейтинг': 4.5,
+                    'Ссылка': 'https://example.com/offer1',
+                    'ШансОдобрения': 95
+                },
+                {
+                    'Название': 'ДеньгиОнлайн',
+                    'Описание': 'Высокий шанс одобрения',
+                    'СуммаМин': 2000,
+                    'СуммаМакс': 30000,
+                    'СрокМин': 1,
+                    'СрокМакс': 60,
+                    'СтавкаМин': 0.5,
+                    'СтавкаМакс': 1,
+                    'Рейтинг': 4.2,
+                    'Ссылка': 'https://example.com/offer2',
+                    'ШансОдобрения': 94
+                }
+            ];
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Офферы');
+            XLSX.writeFile(wb, 'шаблон_офферов.xlsx');
+            
+            showNotification('Шаблон скачан', 'success');
+        }
+        
+        function exportToExcel() {
+            if (offers.length === 0) {
+                showNotification('Нет офферов для экспорта', 'warning');
+                return;
+            }
+            
+            const excelData = offers.map(offer => ({
+                'Название': offer.name,
+                'Описание': offer.description,
+                'СуммаМин': offer.amount_min,
+                'СуммаМакс': offer.amount_max,
+                'СрокМин': offer.term_min,
+                'СрокМакс': offer.term_max,
+                'СтавкаМин': offer.rate_min,
+                'СтавкаМакс': offer.rate_max,
+                'Рейтинг': offer.rating || 5,
+                'Ссылка': offer.link,
+                'ШансОдобрения': offer.approval,
+                'Статус': offer.status === 'active' ? 'Активен' : 'Неактивен',
+                'FinAI': offer.landing1 ? 'Да' : 'Нет',
+                'ДеньгиСразу': offer.landing2 ? 'Да' : 'Нет',
+                'Типы_дохода': (offer.incomeTypes || []).join(', '),
+                'Типы_истории': (offer.historyTypes || []).join(', ')
+            }));
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Офферы');
+            XLSX.writeFile(wb, `офферы_${new Date().toISOString().slice(0,10)}.xlsx`);
+            
+            showNotification(`Экспортировано ${offers.length} офферов`, 'success');
+        }
+        
+        // ===================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====================
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+        
+        function showNotification(message, type = 'success') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                icon: type,
+                title: message
+            });
+        }
+        
+        function loadDemoData() {
+            offers = [
+                {
+                    id: 'offer_1',
+                    name: 'МоментальныеДеньги',
+                    description: 'Лидер по скорости выдачи. Деньги приходят на карту за 3 минуты',
+                    amount_min: 1000,
+                    amount_max: 50000,
+                    term_min: 7,
+                    term_max: 30,
+                    rate_min: 0,
+                    rate_max: 0.8,
+                    approval: 96,
+                    rating: 4.5,
+                    link: 'https://mfo1.com/?ref=finai',
+                    link_landing2: 'https://mfo1.com/?ref=money',
+                    landing1: true,
+                    landing2: true,
+                    status: 'active',
+                    icon: 'bolt',
+                    incomeTypes: ['official', 'unofficial', 'benefits', 'noincome'],
+                    historyTypes: ['none', 'small', 'current', 'bad'],
+                    created_at: new Date().toISOString()
+                },
+                {
+                    id: 'offer_2',
+                    name: 'ДеньгиОнлайн',
+                    description: 'Самый высокий шанс одобрения при плохой кредитной истории',
+                    amount_min: 2000,
+                    amount_max: 30000,
+                    term_min: 1,
+                    term_max: 60,
+                    rate_min: 0.5,
+                    rate_max: 1,
+                    approval: 94,
+                    rating: 4.2,
+                    link: 'https://mfo2.com/?ref=finai',
+                    link_landing2: 'https://mfo2.com/?ref=money',
+                    landing1: true,
+                    landing2: true,
+                    status: 'active',
+                    icon: 'shield-alt',
+                    incomeTypes: ['unofficial', 'benefits', 'noincome'],
+                    historyTypes: ['small', 'current', 'bad'],
+                    created_at: new Date().toISOString()
+                },
+                {
+                    id: 'offer_3',
+                    name: 'ЗаймЭкспресс',
+                    description: 'Лучшие условия для новых клиентов. Первый займ под 0% до 30 000 ₽',
+                    amount_min: 3000,
+                    amount_max: 100000,
+                    term_min: 15,
+                    term_max: 90,
+                    rate_min: 0,
+                    rate_max: 0.5,
+                    approval: 92,
+                    rating: 4.0,
+                    link: 'https://mfo3.com/?ref=finai',
+                    link_landing2: 'https://mfo3.com/?ref=money',
+                    landing1: true,
+                    landing2: true,
+                    status: 'active',
+                    icon: 'star',
+                    incomeTypes: ['official', 'unofficial'],
+                    historyTypes: ['none', 'small'],
+                    created_at: new Date().toISOString()
+                }
+            ];
+            
+            saveData();
+            showNotification('Демо-данные загружены', 'success');
+        }
+    </script>
+</body>
+</html>
